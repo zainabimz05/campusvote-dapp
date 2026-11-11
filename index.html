@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CampusVote: a public campus-event poll on Ethereum Sepolia.">
+  <title>CampusVote · Your campus, your choice</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="brand"><span>✓</span>CampusVote</div><span class="pill">Sepolia testnet</span></header>
+<main>
+  <section class="hero">
+    <div><span class="eyebrow">The next event starts with you</span><h1>Your campus.<br>Your choice. On chain.</h1><p>Pick the next campus event in a transparent, wallet-based poll. Cast a vote, change your mind, and see the results directly from the blockchain.</p></div>
+    <img alt="A checked ballot going into a purple ballot box" width="190" height="190" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='96' fill='%23e9e2ff'/%3E%3Cpath d='M37 108l64-23 62 23v62l-62 24-64-24z' fill='%236244cf'/%3E%3Cpath d='M37 108l64 24 62-24-62-23z' fill='%239e87e9'/%3E%3Cpath d='M74 105l47 17' stroke='%233f268f' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M76 25l66 23-24 70-66-23z' fill='%23fff' stroke='%23c9bce8' stroke-width='2'/%3E%3Cpath d='M77 68l9 15 27-19' fill='none' stroke='%236244cf' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='157' cy='36' r='10' fill='%23f3b97b'/%3E%3C/svg%3E">
+  </section>
+  <section class="card" aria-labelledby="setup-heading">
+    <div class="title-row"><h2 id="setup-heading">Connect to the poll</h2><span class="step">01 / CONNECT</span></div>
+    <div class="setup-grid">
+      <div><label class="field" for="contract-address">Deployed Sepolia contract address</label><input type="text" id="contract-address" placeholder="Paste your CampusVote contract address: 0x…" autocomplete="off" spellcheck="false"></div>
+      <div class="actions"><button id="connect" type="button">Connect MetaMask</button><button id="load" type="button" class="secondary" disabled>Load poll</button></div>
+    </div>
+    <div id="wallet" class="wallet">Wallet not connected</div>
+    <p id="connection" role="status" class="status">Deploy SmartContract.sol on Sepolia, then enter its address here.</p>
+  </section>
+  <div class="columns">
+    <section class="card">
+      <div class="title-row"><h2>Choose our next event</h2><span class="step">02 / VOTE</span></div>
+      <p class="help">One active vote per wallet. You can update or withdraw it anytime.</p>
+      <fieldset id="ballot" disabled>
+        <legend>Which event would you attend?</legend>
+        <label class="option"><input type="radio" name="choice" value="0"><span><strong>Coding workshop</strong><small>Learn something. Build something.</small></span><span class="tag">01</span></label>
+        <label class="option"><input type="radio" name="choice" value="1"><span><strong>Sports tournament</strong><small>Team up and take the field.</small></span><span class="tag">02</span></label>
+        <label class="option"><input type="radio" name="choice" value="2"><span><strong>Movie night</strong><small>A big screen and good company.</small></span><span class="tag">03</span></label>
+      </fieldset>
+      <div class="actions"><button id="vote" type="button" disabled>Cast vote</button><button id="withdraw" type="button" class="text-button" disabled>Withdraw vote</button></div>
+      <p id="my-vote" class="your-vote">Your vote will appear after loading the poll.</p>
+    </section>
+    <section class="card" aria-labelledby="results-heading">
+      <div class="title-row"><h2 id="results-heading">The campus tally</h2><button id="refresh" class="secondary" type="button" disabled>Refresh results</button></div>
+      <div id="total" class="total">—</div><p class="total-label">Active votes</p>
+      <div id="results" aria-live="polite">
+        <div class="result"><div class="result-label"><span>Coding workshop</span><strong id="count-0">—</strong></div><div class="track"><div class="fill" id="bar-0"></div></div></div>
+        <div class="result"><div class="result-label"><span>Sports tournament</span><strong id="count-1">—</strong></div><div class="track"><div class="fill" id="bar-1"></div></div></div>
+        <div class="result"><div class="result-label"><span>Movie night</span><strong id="count-2">—</strong></div><div class="track"><div class="fill" id="bar-2"></div></div></div>
+      </div>
+      <p id="snapshot" class="snapshot">No blockchain data loaded yet.</p>
+    </section>
+  </div>
+  <section class="card activity"><h2>Transaction activity</h2><p id="activity" class="status" role="status" aria-live="polite">No transaction submitted in this session.</p><a id="tx-link" target="_blank" rel="noopener noreferrer" hidden>View transaction on Sepolia Etherscan ↗</a></section>
+  <div class="info">
+    <section><h2>How your vote works</h2><ul><li>Reading results does not cost gas.</li><li>Voting and withdrawing require Sepolia test ETH.</li><li>Updating moves your vote; it does not add another.</li></ul></section>
+    <section><h2>A transparent classroom experiment</h2><p class="small">Votes and wallet addresses are public. This demo counts wallets, not verified students. Results remain open to changes; it is not a private or identity-verified election.</p></section>
+  </div>
+</main>
+<footer><span>CampusVote / A decentralized event poll</span><nav><a href="https://remix.ethereum.org/" target="_blank" rel="noopener noreferrer">Remix IDE</a> · <a href="https://sepolia.etherscan.io/" target="_blank" rel="noopener noreferrer">Sepolia explorer</a> · <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer">MetaMask</a></nav></footer>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+<script>
+'use strict';
+// Optional: put THIS poll's deployed Sepolia address here for a prefilled field.
+const CONTRACT_ADDRESS = '';
+const CHAIN_ID = '0xaa36a7'; // Ethereum Sepolia, decimal 11155111.
+const OPTIONS = ['Coding workshop', 'Sports tournament', 'Movie night'];
+const ABI = [
+  'function getOptions() view returns (string[3])',
+  'function getResults() view returns (uint256[3] counts, uint256 totalVotes)',
+  'function getVote(address voter) view returns (bool hasVoted, uint256 optionId)',
+  'function vote(uint256 optionId)',
+  'function withdrawVote()',
+  'event VoteCast(address indexed voter, uint256 optionId)',
+  'event VoteWithdrawn(address indexed voter, uint256 optionId)'
+];
+const $ = id => document.getElementById(id);
+const choices = [...document.querySelectorAll('input[name="choice"]')];
+let walletProvider, provider, account, contract, busy = false, generation = 0;
+let myChoice = null;
+const detectedWallets = [];
+window.addEventListener('eip6963:announceProvider', event => {
+  if (event.detail?.info?.rdns === 'io.metamask') detectedWallets.push(event.detail.provider);
+});
+window.dispatchEvent(new Event('eip6963:requestProvider'));
+$('contract-address').value = CONTRACT_ADDRESS;
+function message(id, text, type = '') {
+  $(id).textContent = text;
+  $(id).className = 'status ' + type;
+}
+function controls() {
+  $('connect').disabled = busy;
+  $('load').disabled = busy || !account;
+  $('contract-address').disabled = busy;
+  $('ballot').disabled = busy || !contract;
+  const selected = choices.find(choice => choice.checked);
+  $('vote').disabled = busy || !contract || !selected || Number(selected.value) === myChoice;
+  $('vote').textContent = myChoice === null ? 'Cast vote' : 'Update vote';
+  $('withdraw').disabled = busy || !contract || myChoice === null;
+  $('refresh').disabled = busy || !contract;
+}
+function clearPoll() {
+  contract = null; myChoice = null;
+  choices.forEach(choice => { choice.checked = false; });
+  $('total').textContent = '—';
+  for (let i = 0; i < 3; i++) { $('count-' + i).textContent = '—'; $('bar-' + i).style.width = '0%'; }
+  $('my-vote').textContent = 'Your vote will appear after loading the poll.';
+  $('snapshot').textContent = 'No blockchain data loaded yet.';
+}
+function invalidate(reason) {
+  generation++; account = null; provider = null; clearPoll();
+  $('wallet').textContent = 'Wallet not connected';
+  message('connection', reason); controls();
+}
+function errorText(error) {
+  if (error.code === 4001 || error.code === 'ACTION_REJECTED') return 'Request cancelled in MetaMask.';
+  if (error.code === 4902) return 'Enable Sepolia under MetaMask test networks, select it, then reconnect.';
+  if (error.code === 'INSUFFICIENT_FUNDS' || /insufficient funds/i.test(error.message || '')) return 'Not enough Sepolia test ETH for gas. Fund this wallet from a Sepolia faucet, then retry.';
+  return error.reason || error.shortMessage || error.message || 'Something went wrong. Please retry.';
+}
+async function action(task, target = 'activity') {
+  if (busy) return;
+  busy = true; controls();
+  try { await task(); } catch (error) { message(target, errorText(error), 'error'); }
+  finally { busy = false; controls(); }
+}
+async function requireSepolia() {
+  if (!walletProvider || await walletProvider.request({method:'eth_chainId'}) !== CHAIN_ID) {
+    invalidate('Select Sepolia in MetaMask and reconnect.');
+    throw new Error('This poll only works on Ethereum Sepolia.');
+  }
+}
+choices.forEach(choice => choice.addEventListener('change', controls));
+$('contract-address').addEventListener('input', () => {
+  generation++; clearPoll(); controls();
+  message('connection', 'Address changed. Click Load poll to read this deployment.');
+});
+$('connect').onclick = () => action(async () => {
+  if (!window.ethers) throw new Error('ethers.js did not load. Check your internet connection and reload the page.');
+  const injected = detectedWallets[0] || window.ethereum?.providers?.find(p => p.isMetaMask) || (window.ethereum?.isMetaMask ? window.ethereum : null);
+  if (!injected) throw new Error('MetaMask was not detected. Open this page in Chrome with MetaMask installed.');
+  if (walletProvider !== injected) {
+    walletProvider = injected;
+    walletProvider.on('accountsChanged', () => invalidate('Wallet account changed. Reconnect and load the poll.'));
+    walletProvider.on('chainChanged', () => invalidate('Network changed. Reconnect on Sepolia and load the poll.'));
+    walletProvider.on('disconnect', () => invalidate('Wallet disconnected. Please reconnect.'));
+  }
+  invalidate('Connecting to MetaMask…');
+  await walletProvider.request({method:'eth_requestAccounts'});
+  if (await walletProvider.request({method:'eth_chainId'}) !== CHAIN_ID) {
+    await walletProvider.request({method:'wallet_switchEthereumChain',params:[{chainId:CHAIN_ID}]});
+  }
+  await requireSepolia();
+  const version = generation;
+  const nextProvider = new ethers.BrowserProvider(walletProvider);
+  const signer = await nextProvider.getSigner();
+  const nextAccount = await signer.getAddress();
+  if (version !== generation) throw new Error('Wallet changed while connecting. Click Connect MetaMask again.');
+  provider = nextProvider; account = nextAccount;
+  $('wallet').textContent = 'Sepolia · ' + account;
+  message('connection', 'Wallet connected. Enter your contract address and load the poll.', 'success');
+}, 'connection');
+async function readSnapshot(active, activeProvider, voter, minimumBlock = 0) {
+  const blockNumber = Math.max(await activeProvider.getBlockNumber(), minimumBlock);
+  const [results, vote] = await Promise.all([
+    active.getResults({blockTag:blockNumber}), active.getVote(voter, {blockTag:blockNumber})
+  ]);
+  const counts = Array.from(results[0]);
+  const total = results[1];
+  if (counts.length !== 3 || counts.some(count => count < 0n) || counts.reduce((a,b) => a+b,0n) !== total || (vote[0] && vote[1] > 2n)) throw new Error('Unexpected poll data. Check the contract address.');
+  return { counts, total, choice:vote[0] ? Number(vote[1]) : null, blockNumber };
+}
+function render(data) {
+  myChoice = data.choice;
+  $('total').textContent = data.total.toString();
+  data.counts.forEach((count,i) => {
+    const percent = data.total === 0n ? 0 : Number(count * 1000n / data.total) / 10;
+    $('count-' + i).textContent = count.toString() + ' · ' + percent + '%';
+    $('bar-' + i).style.width = percent + '%';
+  });
+  $('my-vote').textContent = myChoice === null ? 'Your wallet has no active vote.' : 'Your current vote: ' + OPTIONS[myChoice];
+  $('snapshot').textContent = 'Read from Sepolia block ' + data.blockNumber + '. Refresh to see new votes.';
+  choices.forEach(choice => { choice.checked = Number(choice.value) === myChoice; });
+  controls();
+}
+$('load').onclick = () => action(async () => {
+  clearPoll();
+  await requireSepolia();
+  const version = generation, currentProvider = provider, currentAccount = account;
+  const raw = $('contract-address').value.trim();
+  if (!ethers.isAddress(raw)) throw new Error('Enter a valid 42-character Ethereum contract address starting with 0x.');
+  const address = ethers.getAddress(raw);
+  if (await currentProvider.getCode(address) === '0x') throw new Error('No contract found at this address on Sepolia. Check the address and deployment.');
+  const next = new ethers.Contract(address, ABI, currentProvider);
+  const names = await next.getOptions();
+  if (names.length !== 3 || names.some((name,i) => name !== OPTIONS[i])) throw new Error('This address is not the expected CampusVote poll. Use your deployed SmartContract.sol address.');
+  const data = await readSnapshot(next, currentProvider, currentAccount);
+  if (version !== generation) throw new Error('Wallet changed while loading. Reconnect and try again.');
+  contract = next; render(data);
+  message('connection', 'Poll loaded on Sepolia · ' + address, 'success');
+}, 'connection');
+async function refresh(minimumBlock = 0) {
+  await requireSepolia();
+  if (!contract) throw new Error('Load the poll first.');
+  const version = generation;
+  const data = await readSnapshot(contract, provider, account, minimumBlock);
+  if (version === generation) render(data);
+}
+$('refresh').onclick = () => action(() => refresh());
+function transactionLink(hash) {
+  $('tx-link').href = 'https://sepolia.etherscan.io/tx/' + hash;
+  $('tx-link').hidden = false;
+}
+async function write(withdraw) {
+  await requireSepolia();
+  if (!contract) throw new Error('Load the poll first.');
+  const selected = choices.find(choice => choice.checked);
+  if (!withdraw && !selected) throw new Error('Choose one event before voting.');
+  const optionId = selected ? Number(selected.value) : null;
+  const version = generation, currentAccount = account, active = contract, activeProvider = provider;
+  const accounts = await walletProvider.request({method:'eth_accounts'});
+  if (accounts[0]?.toLowerCase() !== currentAccount.toLowerCase()) {
+    invalidate('Account changed. Reconnect before voting.');
+    throw new Error('Please reconnect with the account you want to use.');
+  }
+  const signer = await activeProvider.getSigner(currentAccount);
+  if (version !== generation) throw new Error('Wallet changed. Reconnect before voting.');
+  const writable = active.connect(signer);
+  $('tx-link').hidden = true;
+  message('activity', 'Waiting for your approval in MetaMask…');
+  const tx = withdraw ? await writable.withdrawVote() : await writable.vote(optionId);
+  transactionLink(tx.hash);
+  message('activity', 'Transaction submitted. Waiting for one Sepolia confirmation…\n' + tx.hash);
+  let receipt;
+  try { receipt = await tx.wait(1); }
+  catch (error) {
+    if (error.code === 'TRANSACTION_REPLACED') {
+      if (error.replacement?.hash) transactionLink(error.replacement.hash);
+      if (error.cancelled) throw new Error('Transaction cancelled or replaced with a different action. Refresh results to check the current vote.');
+      receipt = error.receipt;
+    } else throw new Error('The transaction was submitted, but confirmation could not be verified. Check the explorer before retrying. ' + errorText(error));
+  }
+  if (!receipt || receipt.status !== 1) throw new Error('Transaction failed on chain. Check the explorer for details.');
+  transactionLink(receipt.hash);
+  message('activity', (withdraw ? 'Vote withdrawn.' : 'Vote confirmed: ' + OPTIONS[optionId] + '.') + '\nConfirmed in block ' + receipt.blockNumber + ' · ' + currentAccount, 'success');
+  if (version === generation) {
+    try { await refresh(receipt.blockNumber); }
+    catch (error) { message('connection', 'Transaction confirmed, but results could not refresh: ' + errorText(error), 'error'); }
+  }
+}
+$('vote').onclick = () => action(() => write(false));
+$('withdraw').onclick = () => action(() => write(true));
+controls();
+</script>
+</body>
+</html>
